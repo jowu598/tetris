@@ -1,0 +1,34 @@
+ python cache file
+*.pyc
+`
+
+# Ignore VS code
+.vscode*
+
+# Ignore binary folder
+bin/*
+
+# mac system file
+.DS_Store
+
+# log
+log
+
+# build generated files
+bazel-*
+*.o
+*.swp
+build
+install
+tmp/*
+Makefile
+
+# vim lsp
+compile_commands.json
+.clangd
+
+# Protobuf generated files
+*.pb.h
+*.pb.cc
+*_pb2.py
+

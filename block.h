@@ -1,0 +1,63 @@
+#pragma once
+
+#include <assert.h>
+
+#include <memory>
+#include <vector>
+
+typedef int Color;
+#define WINDOW_WIDTH (12)
+#define WINDOW_HEIGHT (20)
+
+struct Dot {
+    Color color;
+    bool is_filled;
+};
+
+struct BlockPoints {
+    int x[4];
+    int y[4];
+};
+
+enum class Type : int { O = 0, S, Z, L, T, J, I };
+enum class Action : int { DOWN = 1, LEFT, RIGHT };
+
+class Block {
+public:
+    Block(const char *name, Type type, Color color, int max_rotate_cnt,
+          const BlockPoints &ps);
+
+    void Rotate();
+    void Move(Action action);
+
+    const char *GetName() const { return name_; }
+    int GetX() const { return x_; }
+    int GetY() const { return y_; }
+    Color GetColor() const { return color_; }
+    Type GetType() const { return type_; }
+    BlockPoints GetPoints() const;
+    void AddPoint(const BlockPoints &ps);
+
+    void SetX(int x) { x_ = x; }
+    void SetY(int y) { y_ = y; }
+
+protected:
+    const char *name_;
+    int x_;
+    int y_;
+    Color color_;
+    Type type_;
+    std::vector<BlockPoints> points_;
+    int max_rotate_cnt_;
+    int cur_rotate_cnt_;
+};
+
+class BlockCreator {
+public:
+    std::shared_ptr<Block> Create(Type type);
+    std::shared_ptr<Block> CreateRandom();
+
+private:
+    std::shared_ptr<Block> CreateImpl(Type type, Color clr, int rotate_count,
+                                      const BlockPoints &ps, const char *name);
+};

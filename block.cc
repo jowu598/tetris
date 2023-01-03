@@ -47,6 +47,32 @@ constexpr BlockPoints kBlockL = {{-1, -1, -1, 0}, {-1, 0, 1, 1}};
 constexpr BlockPoints kBlockT = {{-1, 0, 0, 1}, {0, 0, -1, 0}};
 }  // namespace
 
+BlockCreator* BlockCreator::GetInstance() {
+    static BlockCreator s_instance;
+    return &s_instance;
+}
+
+BlockCreator::BlockCreator() {
+    cur_block_ = CreateRandom();
+    for (int i = 0; i < kNextBlockNumber; ++i) {
+        next_blocks_.push_back(CreateRandom());
+    }
+}
+
+std::shared_ptr<Block> BlockCreator::GetCurrentBlock() const {
+    return cur_block_;
+}
+
+std::list<std::shared_ptr<Block>> BlockCreator::GetNextBlocks() const {
+    return next_blocks_;
+}
+
+void BlockCreator::CreateNext() {
+    cur_block_ = next_blocks_.front();
+    next_blocks_.pop_front();
+    next_blocks_.push_back(CreateRandom());
+}
+
 std::shared_ptr<Block> BlockCreator::Create(Type type) {
 #define CREATE_BLOCK_ON_CASE(t, cnt, clr) \
     case Type::t:                         \
@@ -70,6 +96,7 @@ std::shared_ptr<Block> BlockCreator::Create(Type type) {
 
 std::shared_ptr<Block> BlockCreator::CreateRandom() {
     Type type = static_cast<Type>(rand() % 7);
+    LOG("type is %d", type);
     return Create(type);
 }
 

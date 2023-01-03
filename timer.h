@@ -10,8 +10,8 @@ int64_t Nano();
 
 class Timer {
 public:
-    Timer(double interval_ms, TimeOutFunc func);
-    void Start();
+    explicit Timer(TimeOutFunc func);
+    void Start(double interval_ms);
     void Stop();
     void SetInterval(double interval_ms);
 

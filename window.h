@@ -3,6 +3,7 @@
 #include <ncurses.h>
 
 #include <list>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -31,11 +32,6 @@ public:
     NextWindow();
 
     void Draw() final;
-    std::shared_ptr<Block> PopFront();
-
-private:
-    static constexpr int kNextBlockNumber = 4;
-    std::list<std::shared_ptr<Block>> next_blocks_;
 };
 
 struct TextBox {
@@ -60,27 +56,26 @@ private:
 };
 
 class PoolWindow : public WindowBase {
-    friend class MainWindow;
-
 public:
     PoolWindow();
 
-    void UpdateBlock(std::shared_ptr<Block> block) { cur_block_ = block; }
     void Draw() final;
-    //    bool Create();
-    //    void Destroy();
+    void Start();
+
 private:
-    //    bool InitCurses();
+    void OnTick();
+
 private:
+    std::mutex mu_;
+    std::unique_ptr<Timer> timer_;
+    double interval_ms_;
     // TODO(jowu): bitset is faster.
     Dot slots_[WINDOW_HEIGHT][WINDOW_WIDTH];
-    std::shared_ptr<Block> cur_block_;
 };
 
 class MainWindow {
 public:
     MainWindow();
-    void OnTick();
     void OnKeyEvent(int key_code);
 
     void Refresh();
@@ -88,13 +83,10 @@ public:
 
 private:
     bool InitCurses();
-    bool InitTimer();
     bool InitKey();
 
 private:
     double fps_;
-    bool interval_ms_;
-    std::unique_ptr<Timer> timer_;
 
     std::unique_ptr<NextWindow> next_window_;
     std::unique_ptr<DashBoard> dashboard_;

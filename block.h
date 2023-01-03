@@ -2,11 +2,12 @@
 
 #include <assert.h>
 
+#include <list>
 #include <memory>
 #include <vector>
 
 typedef int Color;
-#define WINDOW_WIDTH (12)
+#define WINDOW_WIDTH (24)
 #define WINDOW_HEIGHT (20)
 
 struct Dot {
@@ -54,10 +55,21 @@ protected:
 
 class BlockCreator {
 public:
+    static BlockCreator *GetInstance();
     std::shared_ptr<Block> Create(Type type);
     std::shared_ptr<Block> CreateRandom();
 
+    std::shared_ptr<Block> GetCurrentBlock() const;
+    std::list<std::shared_ptr<Block>> GetNextBlocks() const;
+    void CreateNext();
+
 private:
+    BlockCreator();
     std::shared_ptr<Block> CreateImpl(Type type, Color clr, int rotate_count,
                                       const BlockPoints &ps, const char *name);
+
+private:
+    static constexpr int kNextBlockNumber = 4;
+    std::shared_ptr<Block> cur_block_;
+    std::list<std::shared_ptr<Block>> next_blocks_;
 };

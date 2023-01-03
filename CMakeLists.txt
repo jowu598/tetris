@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 3.5)
 
-set(CMAKE_CXX_FLAGS "-std=c++17 -rdynamic -fPIC")
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
+#set(CMAKE_CXX_FLAGS "-std=c++17 -rdynamic -fPIC")
+#set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+#set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
+set(CMAKE_C_FLAGS "-std=c++17 -fsanitize=address -fno-omit-frame-pointer -g")
+
 set(CMAKE_CXX_STANDARD 17)
 
 project(tetris)

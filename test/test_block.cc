@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdio.h>
 
 #include <vector>
@@ -77,13 +78,14 @@ int main() {
         //        1, 1, 0, 0,
         //        0, 1, 1, 0,
         //        0, 0, 0, 0,
+        printf("block Z\n");
         int rotate_count = 1;
         std::vector<Point> ps = {{0, 0}, {-1, 0}, {0, 1}, {1, 1}};
 
         ShowPos(ps);
 
         std::vector<Point> ps_out;
-        for (int i = 0; i < rotate_count; ++i) {
+        for (int i = 1; i < rotate_count; ++i) {
             Rotate(ps, &ps_out);
             ShowPos(ps_out);
         }
@@ -94,32 +96,36 @@ int main() {
         //        0, 1, 1, 0,
         //        1, 1, 0, 0,
         //        0, 0, 0, 0,
+        printf("block S\n");
         int rotate_count = 2;
         std::vector<Point> ps = {{0, 0}, {0, 1}, {-1, 1}, {1, 0}};
 
         ShowPos(ps);
 
         std::vector<Point> ps_out;
-        for (int i = 0; i < rotate_count; ++i) {
+        for (int i = 1; i < rotate_count; ++i) {
             Rotate(ps, &ps_out);
             ShowPos(ps_out);
         }
     }
     {
+        printf("block O\n");
         // Block O
         //        0, 0, 0, 0,
         //        0, 1, 1, 0,
         //        0, 1, 1, 0,
         //        0, 0, 0, 0,
-        int rotate_count = 2;
+        int rotate_count = 1;
         std::vector<Point> ps = {{0, 0}, {0, 1}, {1, 1}, {1, 0}};
 
         ShowPos(ps);
 
-        std::vector<Point> ps_out;
-        for (int i = 0; i < rotate_count; ++i) {
-            Rotate(ps, &ps_out);
+        std::vector<Point> ps_now = ps;
+        for (int i = 1; i < rotate_count; ++i) {
+            std::vector<Point> ps_out;
+            Rotate(ps_now, &ps_out);
             ShowPos(ps_out);
+            ps_now = ps_out;
         }
     }
     {
@@ -128,15 +134,17 @@ int main() {
         //        1, 0, 0, 0,
         //        1, 0, 0, 0,
         //        0, 0, 0, 0,
+        printf("block L\n");
         int rotate_count = 4;
         std::vector<Point> ps = {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}};
 
         ShowPos(ps);
 
-        std::vector<Point> ps_out;
-        for (int i = 0; i < rotate_count; ++i) {
+        for (int i = 1; i < rotate_count; ++i) {
+            std::vector<Point> ps_out;
             Rotate(ps, &ps_out);
             ShowPos(ps_out);
+            ps = ps_out;
         }
     }
 }

@@ -14,3 +14,5 @@ void WriteToFile(const char* file, const char* func, int64_t line,
     do {                                                                   \
         WriteToFile(__FILENAME__, __func__, __LINE__, fmt, ##__VA_ARGS__); \
     } while (0)
+
+#define LOG_HERE LOG("");

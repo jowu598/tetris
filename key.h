@@ -4,7 +4,7 @@
 
 typedef std::function<void(int code)> KeyEventNotifier;
 
-typedef void (*KeyEventNotifier2)();
+// This class is deprecated, Looks ncurses block event from /dev/input/eventx.
 class KeyHandler {
 public:
     static KeyHandler* GetInstance();

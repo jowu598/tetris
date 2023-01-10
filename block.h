@@ -4,10 +4,11 @@
 
 #include <list>
 #include <memory>
+#include <mutex>
 #include <vector>
 
 typedef int Color;
-#define WINDOW_WIDTH (24)
+#define WINDOW_WIDTH (12)
 #define WINDOW_HEIGHT (20)
 
 struct Dot {
@@ -28,7 +29,7 @@ public:
     Block(const char *name, Type type, Color color, int max_rotate_cnt,
           const BlockPoints &ps);
 
-    void Rotate();
+    void Rotate(bool clockwise);
     void Move(Action action);
 
     const char *GetName() const { return name_; }
@@ -50,7 +51,7 @@ protected:
     Type type_;
     std::vector<BlockPoints> points_;
     int max_rotate_cnt_;
-    int cur_rotate_cnt_;
+    int cur_rotate_idx_;
 };
 
 class BlockCreator {
@@ -60,7 +61,7 @@ public:
     std::shared_ptr<Block> CreateRandom();
 
     std::shared_ptr<Block> GetCurrentBlock() const;
-    std::list<std::shared_ptr<Block>> GetNextBlocks() const;
+    std::list<std::shared_ptr<Block>> GetNextBlocks();
     void CreateNext();
 
 private:
@@ -72,4 +73,5 @@ private:
     static constexpr int kNextBlockNumber = 4;
     std::shared_ptr<Block> cur_block_;
     std::list<std::shared_ptr<Block>> next_blocks_;
+    std::mutex mu_;
 };

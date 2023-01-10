@@ -63,7 +63,7 @@ std::shared_ptr<Block> BlockCreator::GetCurrentBlock() const {
     return cur_block_;
 }
 
-std::list<std::shared_ptr<Block>> BlockCreator::GetNextBlocks() const {
+std::list<std::shared_ptr<Block>> BlockCreator::GetNextBlocks() {
     return next_blocks_;
 }
 
@@ -96,7 +96,6 @@ std::shared_ptr<Block> BlockCreator::Create(Type type) {
 
 std::shared_ptr<Block> BlockCreator::CreateRandom() {
     Type type = static_cast<Type>(rand() % 7);
-    LOG("type is %d", type);
     return Create(type);
 }
 
@@ -104,14 +103,16 @@ std::shared_ptr<Block> BlockCreator::CreateImpl(Type type, Color color,
                                                 int rotate_count,
                                                 const BlockPoints& ps,
                                                 const char* name) {
-    LOG("create block [%s] type [%d]", name, type);
+    //    LOG("create block [%s] type [%d]", name, type);
     std::shared_ptr<Block> block =
         std::make_shared<Block>(name, type, color, rotate_count, ps);
     BlockPoints cur_ps = block->GetPoints();
     for (int i = 1; i < rotate_count; ++i) {
         BlockPoints next_ps;
+        LOG("rotate block name %s type %d  idx %d", name, type, i);
         RotateBlock(cur_ps, &next_ps);
         block->AddPoint(next_ps);
+        cur_ps = next_ps;
     }
 
     return block;
@@ -124,20 +125,23 @@ Block::Block(const char* name, Type type, Color color, int max_rotate_cnt,
     type_ = type;
     x_ = 0;
     y_ = 0;
-    cur_rotate_cnt_ = 0;
+    cur_rotate_idx_ = 0;
     max_rotate_cnt_ = max_rotate_cnt;
     AddPoint(ps);
 }
 
 BlockPoints Block::GetPoints() const {
-    assert(points_.size() > cur_rotate_cnt_);
-    return points_[cur_rotate_cnt_];
+    assert(points_.size() > cur_rotate_idx_);
+    return points_[cur_rotate_idx_];
 }
 
 void Block::AddPoint(const BlockPoints& ps) { points_.emplace_back(ps); }
 
-void Block::Rotate() {
-    cur_rotate_cnt_ = (cur_rotate_cnt_ + 1) / max_rotate_cnt_;
+void Block::Rotate(bool clockwise) {
+    LOG("cur_rotate_idx_ %d", cur_rotate_idx_);
+    cur_rotate_idx_ =
+        (max_rotate_cnt_ + cur_rotate_idx_ + (clockwise ? 1 : -1)) %
+        max_rotate_cnt_;
 }
 
 void Block::Move(Action action) {

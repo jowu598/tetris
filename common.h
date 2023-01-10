@@ -3,6 +3,7 @@
 #include "block.h"
 
 bool IsMovable(const Block& block, Dot pool[][WINDOW_WIDTH]);
+bool IsMovable(const Block& block, int x, int y, Dot pool[][WINDOW_WIDTH]);
 bool DropBlock(const Block& block, Dot pool[][WINDOW_WIDTH]);
 bool IsCompleted(Dot pool[][WINDOW_WIDTH], std::vector<int>* lines);
 void ClearLines(Dot pool[][WINDOW_WIDTH]);

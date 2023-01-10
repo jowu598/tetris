@@ -27,9 +27,11 @@ KeyHandler* KeyHandler::GetInstance() {
 }
 
 bool KeyHandler::Init() {
+    LOG_HERE;
     quit_ = false;
     auto rfd = open(kInputPath, O_RDONLY);
     assert(rfd != -1);
+    LOG_HERE;
     fd_set fds;
     FD_ZERO(&fds);
     FD_SET(rfd, &fds);
@@ -39,7 +41,10 @@ bool KeyHandler::Init() {
             struct input_event evt;
             auto size = sizeof(struct input_event);
             ssize_t rd = read(rfd, &evt, size);
+            LOG("rd %d ", rd);
             if (rd == size) {
+                LOG("key code %d type %d value %d", evt.code, evt.type,
+                    evt.value);
                 for (const auto& cb : cbs_) {
                     cb(evt.code);
                 }

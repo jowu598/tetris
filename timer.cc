@@ -36,10 +36,13 @@ void Timer::Start(double interval_ms) {
     ssize_t rd;
     uint64_t exp;
     th_ = std::thread([&]() {
-        while (true) {
+        while (!quit_) {
             rd = read(tfd_, &exp, sizeof(uint64_t));
             assert(rd != -1);
-            func_();
+            bool ret = func_();
+            if (ret) {
+                break;
+            }
         }
     });
 }

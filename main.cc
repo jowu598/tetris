@@ -8,12 +8,14 @@ void voidendwin() { endwin(); }
 int height = 20;
 int width = 24;
 
+#include "key.h"
 #include "window.h"
 
 int main() {
     srand(time(NULL));
     MainWindow w;
-    w.Show();
+    // KeyHandler::GetInstance()->Init();
+    w.Play();
     return 1;
 
 #if 0

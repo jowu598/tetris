@@ -17,6 +17,8 @@ public:
     void SetColor(Color color);
     virtual void Draw();
 
+    WINDOW* GetWindow() { return win_; }
+
 protected:
     WINDOW* border_;
     WINDOW* win_;
@@ -63,23 +65,24 @@ public:
     void Start();
 
 private:
-    void OnTick();
+    bool OnTick();
+    void OnKey(int key_code);
 
 private:
     std::mutex mu_;
     std::unique_ptr<Timer> timer_;
+    std::thread input_thread_;
     double interval_ms_;
-    // TODO(jowu): bitset is faster.
+    // TODO(jowu): bitset is faster
     Dot slots_[WINDOW_HEIGHT][WINDOW_WIDTH];
 };
 
 class MainWindow {
 public:
     MainWindow();
-    void OnKeyEvent(int key_code);
 
     void Refresh();
-    void Show();
+    void Play();
 
 private:
     bool InitCurses();

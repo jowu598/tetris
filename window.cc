@@ -64,12 +64,16 @@ void NextWindow::Draw() {
 PoolWindow::PoolWindow()
     : WindowBase(GetWidth() / 2 - WINDOW_WIDTH, 0, 2 * WINDOW_WIDTH,
                  WINDOW_HEIGHT),
-      interval_ms_(100),
+      interval_ms_(1),
       timer_(std::make_unique<Timer>(std::bind(&PoolWindow::OnTick, this))) {
     input_thread_ = std::thread([&]() {
         while (1) {
-            int ch = wgetch(win_);
-            OnKey(ch);
+            if (enable_key) {
+                int ch = wgetch(win_);
+                OnKey(ch);
+            } else {
+                LOG("key disabled!!");
+            }
         }
     });
 }
@@ -116,11 +120,11 @@ bool PoolWindow::OnTick() {
     auto cur_block = BlockCreator::GetInstance()->GetCurrentBlock();
     if (cur_block) {
         // Check if over.
-        if (!IsMovable(*cur_block.get(), slots_)) {
-            LOG("end of game");
-            exit(0);
-            return true;
-        }
+        // if (!IsMovable(*cur_block.get(), slots_)) {
+        //    LOG("end of game");
+        //    // exit(0);
+        //    return true;
+        //}
         // Let block down.
         if (IsMovable(*cur_block.get(), cur_block->GetX(),
                       cur_block->GetY() + 1, slots_)) {
@@ -235,7 +239,10 @@ void MainWindow::Play() {
         // TODO(jowu):Ignore key input when refresh.
         // int ch = wgetch(pool_window_->GetWindow());
         //        LOG("ch %d", ch);
+        // Skip key event when rendering.
         Refresh();
+        pool_window_->enable_key = true;
         sleep(1 / fps_);
+        pool_window_->enable_key = false;
     }
 }

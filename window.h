@@ -64,6 +64,8 @@ public:
     void Draw() final;
     void Start();
 
+    bool enable_key;
+
 private:
     bool OnTick();
     void OnKey(int key_code);

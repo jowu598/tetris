@@ -2,10 +2,52 @@
 
 #include <ncurses.h>
 
+#include <map>
+
 #include "log.h"
+
+void ShowSlotPos(Dot pool[][WINDOW_WIDTH]) {
+    char msg[1024];
+    int offset = snprintf(msg, 1024, "%s", "--------------------------\n");
+    for (int h = 0; h < WINDOW_HEIGHT; ++h) {
+        for (int w = 0; w < WINDOW_WIDTH; ++w) {
+            offset += snprintf(msg + offset, 1024 - offset, "%d",
+                               pool[h][w].is_filled);
+        }
+
+        offset += snprintf(msg + offset, 1024 - offset, "\n");
+    }
+    LOG(msg);
+}
+
+void ShowBlockPos(const BlockPoints& ps) {
+    int a[16] = {0};
+    for (int i = 0; i < 4; ++i) {
+        int x = ps.x[i] + 1;
+        int y = ps.y[i] + 1;
+        a[x * 4 + y] = 1;
+    }
+
+    char msg[1024];
+    int offset = snprintf(msg, 1024, "%s", "--------------------------\n");
+    for (int i = 0; i < 16; ++i) {
+        offset += snprintf(msg + offset, 1024 - offset, "%d ", a[i]);
+        if ((i + 1) % 4 == 0) {
+            offset += snprintf(msg + offset, 1024 - offset, "%s", "\n");
+        }
+    }
+
+    LOG(msg);
+}
 
 bool IsMovable(const Block& block, Dot pool[][WINDOW_WIDTH]) {
     return IsMovable(block, block.GetX(), block.GetY(), pool);
+}
+
+bool IsRotatable(const Block& block, bool clockwise, Dot pool[][WINDOW_WIDTH]) {
+    auto cur_block = block;
+    cur_block.Rotate(clockwise);
+    return IsMovable(cur_block, pool);
 }
 
 bool IsMovable(const Block& block, int x, int y, Dot pool[][WINDOW_WIDTH]) {
@@ -56,73 +98,80 @@ bool IsCompleted(Dot pool[][WINDOW_WIDTH], std::vector<int>* lines) {
         return false;
     }
 
-    for (int y = 0; y < WINDOW_HEIGHT; ++y) {
+    for (int h = WINDOW_HEIGHT - 1; h >= 0; --h) {
         bool clean = true;
-        for (int x = 0; x < WINDOW_WIDTH; ++x) {
-            if (!pool[y][x].is_filled) {
+        for (int w = 0; w < WINDOW_WIDTH; ++w) {
+            if (!pool[h][w].is_filled) {
                 clean = false;
                 break;
             }
         }
 
         if (clean) {
-            lines->push_back(y);
-            LOG("cccccccccccc %d", y);
+            lines->push_back(h);
+            LOG("cccccccccccc %d", h);
         }
     }
 
     return lines->size();
 }
 
+struct MapKeyCompare {
+    bool operator()(const int lhs, const int rhs) const { return lhs > rhs; }
+};
+
 void ClearLines(Dot pool[][WINDOW_WIDTH]) {
     if (!pool) {
         return;
     }
 
+    ShowSlotPos(pool);
+
     std::vector<int> lines;
     if (IsCompleted(pool, &lines)) {
         // Collapse clean lines.
+        /* old   shift      new
+         * 0 c   5
+         * 1 1
+         * 2 1
+         * 3 b   3
+         * 4 1
+         * 5 1              5 c
+         * 6 a   1          6 b
+         * 7 1              7 a
+         */
+
+        // Key: current height from here, Value: target height shift to.
+        std::map<int, int, MapKeyCompare> shift_lines;
         int shift = 0;
-        for (int h = 0; h < WINDOW_HEIGHT; ++h) {
-            if (lines[shift] == WINDOW_HEIGHT - 1 - h) {
+        for (int h = WINDOW_HEIGHT - 1; h >= 0; --h) {
+            if (lines[shift] == h) {
                 ++shift;
+            } else {
+                shift_lines[h] = h + shift;
+                LOG("0000000000000000000 %d ------ %d", h, shift);
             }
+        }
+
+        for (auto x : shift_lines) {
+            LOG("xxxxxxxx %d >> %d", x.first, x.second);
 
             for (int w = 0; w < WINDOW_WIDTH; ++w) {
-                pool[WINDOW_HEIGHT - 1 - h][w] =
-                    pool[WINDOW_HEIGHT - 1 - h - shift][w];
+                pool[x.second][w] = pool[x.first][w];
             }
         }
 
         // Empty forehead.
         for (int i = 0; i < lines.size(); ++i) {
-            for (int j = 0; j < WINDOW_HEIGHT; ++j) {
+            for (int j = 0; j < WINDOW_WIDTH; ++j) {
                 // FIXME: empty color.
                 pool[i][j].color = 0;
                 pool[i][j].is_filled = false;
             }
         }
     }
-}
 
-void ShowBlockPos(const BlockPoints& ps) {
-    int a[16] = {0};
-    for (int i = 0; i < 4; ++i) {
-        int x = ps.x[i] + 1;
-        int y = ps.y[i] + 1;
-        a[x * 4 + y] = 1;
-    }
-
-    char msg[1024];
-    int offset = snprintf(msg, 1024, "%s", "--------------------------\n");
-    for (int i = 0; i < 16; ++i) {
-        offset += snprintf(msg + offset, 1024 - offset, "%d ", a[i]);
-        if ((i + 1) % 4 == 0) {
-            offset += snprintf(msg + offset, 1024 - offset, "%s", "\n");
-        }
-    }
-
-    LOG(msg);
+    ShowSlotPos(pool);
 }
 
 void RotateBlock(const BlockPoints& cur_points, BlockPoints* next_points) {

@@ -70,9 +70,11 @@ PoolWindow::PoolWindow()
         while (1) {
             if (enable_key) {
                 int ch = wgetch(win_);
+                // TODO(jowu): Enable KeyManager for key press accelerate within
+                // sub-process.
                 OnKey(ch);
             } else {
-                LOG("key disabled!!");
+                // LOG("key disabled!!");
             }
         }
     });
@@ -120,11 +122,11 @@ bool PoolWindow::OnTick() {
     auto cur_block = BlockCreator::GetInstance()->GetCurrentBlock();
     if (cur_block) {
         // Check if over.
-        // if (!IsMovable(*cur_block.get(), slots_)) {
-        //    LOG("end of game");
-        //    // exit(0);
-        //    return true;
-        //}
+        if (!IsMovable(*cur_block.get(), slots_)) {
+            LOG("end of game");
+            // exit(0);
+            return true;
+        }
         // Let block down.
         if (IsMovable(*cur_block.get(), cur_block->GetX(),
                       cur_block->GetY() + 1, slots_)) {
@@ -134,7 +136,7 @@ bool PoolWindow::OnTick() {
             auto ps = cur_block->GetPoints();
             auto x = cur_block->GetX();
             auto y = cur_block->GetY();
-            LOG("cannot move block %d %d", x, y);
+            // LOG("cannot move block %d %d", x, y);
             for (int i = 0; i < 4; ++i) {
                 LOG("[%d %d] filled", y, x);
                 slots_[y + ps.y[i] + 1][x + ps.x[i] + 1].is_filled = true;
@@ -176,16 +178,20 @@ void PoolWindow::OnKey(int key_code) {
             cur_block->Move(Action::DOWN);
             break;
         case 106:  // J->rotate clockwise.
-            cur_block->Rotate(true);
+            if (IsRotatable(*cur_block.get(), true, slots_)) {
+                cur_block->Rotate(true);
+            }
             break;
         case 107:  // K->rotate anti-clockwise.
-            cur_block->Rotate(false);
+            if (IsRotatable(*cur_block.get(), false, slots_)) {
+                cur_block->Rotate(false);
+            }
             break;
             //        case 107:  // B->flick left.
-            //            FlickLeft(*cur_block.get(), slots_);
+            //            FlickLeft(cur_block.get(), slots_);
             //            break;
             //        case 107:  // B->flick right.
-            //            FlickRight(*cur_block.get(), slots_);
+            //            FlickRight(cur_block.get(), slots_);
             //            break;
         default:
             break;
@@ -218,6 +224,7 @@ bool MainWindow::InitCurses() {
     init_pair(6, COLOR_BLACK, COLOR_BLUE);
     init_pair(7, COLOR_BLACK, COLOR_WHITE);
     init_pair(17, COLOR_RED, COLOR_BLACK);
+
     init_pair(18, COLOR_YELLOW, COLOR_BLACK);
     init_pair(19, COLOR_GREEN, COLOR_BLACK);
     init_pair(20, COLOR_YELLOW, COLOR_BLACK);
@@ -236,10 +243,6 @@ void MainWindow::Refresh() {
 void MainWindow::Play() {
     pool_window_->Start();
     while (1) {
-        // TODO(jowu):Ignore key input when refresh.
-        // int ch = wgetch(pool_window_->GetWindow());
-        //        LOG("ch %d", ch);
-        // Skip key event when rendering.
         Refresh();
         pool_window_->enable_key = true;
         sleep(1 / fps_);

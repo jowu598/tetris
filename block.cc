@@ -109,7 +109,7 @@ std::shared_ptr<Block> BlockCreator::CreateImpl(Type type, Color color,
     BlockPoints cur_ps = block->GetPoints();
     for (int i = 1; i < rotate_count; ++i) {
         BlockPoints next_ps;
-        LOG("rotate block name %s type %d  idx %d", name, type, i);
+        // LOG("rotate block name %s type %d  idx %d", name, type, i);
         RotateBlock(cur_ps, &next_ps);
         block->AddPoint(next_ps);
         cur_ps = next_ps;
@@ -138,7 +138,7 @@ BlockPoints Block::GetPoints() const {
 void Block::AddPoint(const BlockPoints& ps) { points_.emplace_back(ps); }
 
 void Block::Rotate(bool clockwise) {
-    LOG("cur_rotate_idx_ %d", cur_rotate_idx_);
+    // LOG("cur_rotate_idx_ %d", cur_rotate_idx_);
     cur_rotate_idx_ =
         (max_rotate_cnt_ + cur_rotate_idx_ + (clockwise ? 1 : -1)) %
         max_rotate_cnt_;

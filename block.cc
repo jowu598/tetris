@@ -73,6 +73,13 @@ void BlockCreator::CreateNext() {
     next_blocks_.push_back(CreateRandom());
 }
 
+void BlockCreator::ResumeBack(Type type) {
+    // The tail of next block won't cached.
+    next_blocks_.pop_front();
+    next_blocks_.push_back(cur_block_);
+    cur_block_ = Create(type);
+}
+
 std::shared_ptr<Block> BlockCreator::Create(Type type) {
 #define CREATE_BLOCK_ON_CASE(t, cnt, clr) \
     case Type::t:                         \
@@ -107,6 +114,8 @@ std::shared_ptr<Block> BlockCreator::CreateImpl(Type type, Color color,
     std::shared_ptr<Block> block =
         std::make_shared<Block>(name, type, color, rotate_count, ps);
     BlockPoints cur_ps = block->GetPoints();
+    block->SetX(WINDOW_WIDTH / 2 - 1);
+    block->SetY(0);
     for (int i = 1; i < rotate_count; ++i) {
         BlockPoints next_ps;
         // LOG("rotate block name %s type %d  idx %d", name, type, i);

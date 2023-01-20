@@ -109,7 +109,6 @@ bool IsCompleted(Dot pool[][WINDOW_WIDTH], std::vector<int>* lines) {
 
         if (clean) {
             lines->push_back(h);
-            LOG("cccccccccccc %d", h);
         }
     }
 
@@ -124,8 +123,6 @@ void ClearLines(Dot pool[][WINDOW_WIDTH]) {
     if (!pool) {
         return;
     }
-
-    ShowSlotPos(pool);
 
     std::vector<int> lines;
     if (IsCompleted(pool, &lines)) {
@@ -149,13 +146,10 @@ void ClearLines(Dot pool[][WINDOW_WIDTH]) {
                 ++shift;
             } else {
                 shift_lines[h] = h + shift;
-                LOG("0000000000000000000 %d ------ %d", h, shift);
             }
         }
 
         for (auto x : shift_lines) {
-            LOG("xxxxxxxx %d >> %d", x.first, x.second);
-
             for (int w = 0; w < WINDOW_WIDTH; ++w) {
                 pool[x.second][w] = pool[x.first][w];
             }
@@ -171,7 +165,7 @@ void ClearLines(Dot pool[][WINDOW_WIDTH]) {
         }
     }
 
-    ShowSlotPos(pool);
+    // ShowSlotPos(pool);
 }
 
 void RotateBlock(const BlockPoints& cur_points, BlockPoints* next_points) {

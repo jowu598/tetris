@@ -2,9 +2,10 @@
 
 #include <ncurses.h>
 
-#include <list>
 #include <mutex>
+#include <stack>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "common.h"
@@ -57,6 +58,28 @@ private:
     double apm_;
 };
 
+// TODO(jowu); Move to slots.cc or snapshot.cc
+struct SnapShot {
+    void Serialize(const Dot pool[][WINDOW_WIDTH]);
+    void Deserialize(Dot pool[][WINDOW_WIDTH]);
+
+    std::unordered_map<int, Color> filled_colors;
+    Type type;
+    int64_t timestamp_ms;
+};
+
+class SnapShotManager {
+public:
+    SnapShotManager() = default;
+
+    void TakeSnapshot(const Dot pool[][WINDOW_WIDTH]);
+    bool ResumeFromSnapShot(Dot pool[][WINDOW_WIDTH]);
+
+private:
+private:
+    std::stack<SnapShot> history;
+};
+
 class PoolWindow : public WindowBase {
 public:
     PoolWindow();
@@ -68,13 +91,15 @@ public:
 
 private:
     bool OnTick();
-    void OnKey(int key_code);
+    void OnKey(int key_code, int pos_x_shift);
 
 private:
     std::mutex mu_;
     std::unique_ptr<Timer> timer_;
+    std::unique_ptr<SnapShotManager> snapshots_;
     std::thread input_thread_;
     double interval_ms_;
+    int pos_x_shift_;
     // TODO(jowu): bitset is faster
     Dot slots_[WINDOW_HEIGHT][WINDOW_WIDTH];
 };

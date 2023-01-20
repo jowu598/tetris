@@ -63,6 +63,7 @@ public:
     std::shared_ptr<Block> GetCurrentBlock() const;
     std::list<std::shared_ptr<Block>> GetNextBlocks();
     void CreateNext();
+    void ResumeBack(Type type);
 
 private:
     BlockCreator();

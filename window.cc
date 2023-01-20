@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include <functional>
+#include <unordered_set>
 #include <utility>
 
 #include "common.h"
@@ -61,31 +62,96 @@ void NextWindow::Draw() {
     WindowBase::Draw();
 }
 
+void SnapShot::Serialize(const Dot pool[][WINDOW_WIDTH]) {
+    for (int h = 0; h < WINDOW_HEIGHT; ++h) {
+        for (int w = 0; w < WINDOW_WIDTH; ++w) {
+            if (pool[h][w].is_filled) {
+                filled_colors[(h << 16) + w] = pool[h][w].color;
+            }
+        }
+    }
+
+    type = BlockCreator::GetInstance()->GetCurrentBlock()->GetType();
+}
+
+void SnapShot::Deserialize(Dot pool[][WINDOW_WIDTH]) {
+    for (int h = 0; h < WINDOW_HEIGHT; ++h) {
+        memset(pool[h], 0, sizeof(Dot) * WINDOW_WIDTH);
+    }
+
+    for (auto it : filled_colors) {
+        int w = it.first & 0xff;
+        int h = (it.first >> 16) & 0xff;
+        pool[h][w].is_filled = true;
+        pool[h][w].color = it.second;
+    }
+}
+
+void SnapShotManager::TakeSnapshot(const Dot pool[][WINDOW_WIDTH]) {
+    SnapShot ss;
+    ss.type = BlockCreator::GetInstance()->GetCurrentBlock()->GetType();
+    ss.Serialize(pool);
+    history.push(ss);
+}
+
+bool SnapShotManager::ResumeFromSnapShot(Dot pool[][WINDOW_WIDTH]) {
+    if (history.empty()) return false;
+    SnapShot ss = history.top();
+    ss.Deserialize(pool);
+    BlockCreator::GetInstance()->ResumeBack(ss.type);
+    history.pop();
+
+    return true;
+}
+
 PoolWindow::PoolWindow()
     : WindowBase(GetWidth() / 2 - WINDOW_WIDTH, 0, 2 * WINDOW_WIDTH,
-                 WINDOW_HEIGHT),
-      interval_ms_(1),
-      timer_(std::make_unique<Timer>(std::bind(&PoolWindow::OnTick, this))) {
+                 WINDOW_HEIGHT + 2),
+      interval_ms_(100),
+      timer_(std::make_unique<Timer>(std::bind(&PoolWindow::OnTick, this))),
+      snapshots_(std::make_unique<SnapShotManager>()) {
     input_thread_ = std::thread([&]() {
         while (1) {
             if (enable_key) {
                 int ch = wgetch(win_);
-                // TODO(jowu): Enable KeyManager for key press accelerate within
-                // sub-process.
-                OnKey(ch);
+                if (ch >= 49 && ch <= 58) {
+                    // Record shift from Number code.
+                    pos_x_shift_ = ch - 48;
+                } else if (ch == 104 || ch == 108) {
+                    // Ignore key of move left/right.
+                } else {
+                    // Reset shift.
+                    pos_x_shift_ = 1;
+                }
+
+                // TODO(jowu): Enable KeyManager for key press accelerate
+                // within sub-process.
+                OnKey(ch, pos_x_shift_);
+                // LOG("key %d sft %d", ch, pos_x_shift_);
             } else {
-                // LOG("key disabled!!");
+                // LOG("key %d disabled!!");
             }
         }
     });
 }
 
-void PoolWindow::Start() { timer_->Start(interval_ms_); }
+void PoolWindow::Start() {
+    assert(timer_ && snapshots_);
+    timer_->Start(interval_ms_);
+    snapshots_->TakeSnapshot(slots_);
+}
 
 void PoolWindow::Draw() {
     WindowBase::Draw();
+    auto cur_block = BlockCreator::GetInstance()->GetCurrentBlock();
+    std::unordered_set<int> xs;
+    for (int i = 0; i < 4; ++i) {
+        xs.insert(cur_block->GetX() + cur_block->GetPoints().x[i] + 1);
+    }
+
     // Draw pool.
     {
+        // Slots.
         for (int y = 0; y < WINDOW_HEIGHT; ++y) {
             for (int x = 0; x < WINDOW_WIDTH; ++x) {
                 if (!slots_[y][x].is_filled) {
@@ -98,10 +164,26 @@ void PoolWindow::Draw() {
                 mvwaddch(win_, y, 2 * x + 1, ' ');
             }
         }
+        // Indicators.
+        for (int x = 0; x < WINDOW_WIDTH; ++x) {
+            if (xs.count(x) != 0) {
+                wattrset(win_, COLOR_PAIR(20));
+            } else {
+                wattrset(win_, COLOR_PAIR(0));
+            }
+
+            int shift = x - cur_block->GetX() - 1;
+            mvwaddch(win_, WINDOW_HEIGHT, 2 * x + 1, shift > 0 ? '+' : '-');
+            mvwaddch(win_, WINDOW_HEIGHT, 2 * x, '0' + abs(shift));
+        }
+        for (int x = 0; x < WINDOW_WIDTH; ++x) {
+            wattrset(win_, COLOR_PAIR(0));
+            mvwaddch(win_, WINDOW_HEIGHT + 1, 2 * x, '0' + x);
+            mvwaddch(win_, WINDOW_HEIGHT + 1, 2 * x + 1, ' ');
+        }
     }
     // Draw block.
     {
-        auto cur_block = BlockCreator::GetInstance()->GetCurrentBlock();
         int y = cur_block->GetY();
         int x = cur_block->GetX();
         auto ps = cur_block->GetPoints();
@@ -132,13 +214,13 @@ bool PoolWindow::OnTick() {
                       cur_block->GetY() + 1, slots_)) {
             cur_block->Move(Action::DOWN);
         } else {
+            snapshots_->TakeSnapshot(slots_);
             // Check if over.
             auto ps = cur_block->GetPoints();
             auto x = cur_block->GetX();
             auto y = cur_block->GetY();
             // LOG("cannot move block %d %d", x, y);
             for (int i = 0; i < 4; ++i) {
-                LOG("[%d %d] filled", y, x);
                 slots_[y + ps.y[i] + 1][x + ps.x[i] + 1].is_filled = true;
                 slots_[y + ps.y[i] + 1][x + ps.x[i] + 1].color =
                     cur_block->GetColor();
@@ -151,7 +233,7 @@ bool PoolWindow::OnTick() {
     return false;
 }
 
-void PoolWindow::OnKey(int key_code) {
+void PoolWindow::OnKey(int key_code, int pos_x_shift) {
     std::unique_lock<std::mutex> lock;
     auto cur_block = BlockCreator::GetInstance()->GetCurrentBlock();
     // TODO(jowu): DashBoard for key settings.
@@ -163,19 +245,28 @@ void PoolWindow::OnKey(int key_code) {
             }
             break;
         case 104:  // H->left.
-            if (IsMovable(*cur_block.get(), cur_block->GetX() - 1,
-                          cur_block->GetY(), slots_)) {
-                cur_block->Move(Action::LEFT);
+            for (int i = 0; i < pos_x_shift_; ++i) {
+                if (IsMovable(*cur_block.get(), cur_block->GetX() - 1,
+                              cur_block->GetY(), slots_)) {
+                    cur_block->Move(Action::LEFT);
+                }
             }
+            pos_x_shift_ = 1;
             break;
         case 108:  // L->right.
-            if (IsMovable(*cur_block.get(), cur_block->GetX() + 1,
-                          cur_block->GetY(), slots_)) {
-                cur_block->Move(Action::RIGHT);
+            for (int i = 0; i < pos_x_shift; ++i) {
+                if (IsMovable(*cur_block.get(), cur_block->GetX() + 1,
+                              cur_block->GetY(), slots_)) {
+                    cur_block->Move(Action::RIGHT);
+                }
             }
+            pos_x_shift_ = 1;
             break;
         case 110:  // N->down.
-            cur_block->Move(Action::DOWN);
+            if (IsMovable(*cur_block.get(), cur_block->GetX(),
+                          cur_block->GetY() + 1, slots_)) {
+                cur_block->Move(Action::DOWN);
+            }
             break;
         case 106:  // J->rotate clockwise.
             if (IsRotatable(*cur_block.get(), true, slots_)) {
@@ -187,12 +278,23 @@ void PoolWindow::OnKey(int key_code) {
                 cur_block->Rotate(false);
             }
             break;
-            //        case 107:  // B->flick left.
-            //            FlickLeft(cur_block.get(), slots_);
-            //            break;
-            //        case 107:  // B->flick right.
-            //            FlickRight(cur_block.get(), slots_);
-            //            break;
+        case 98:
+        case 100:  // B/F->flick left.
+            while (IsMovable(*cur_block.get(), cur_block->GetX() - 1,
+                             cur_block->GetY(), slots_)) {
+                cur_block->Move(Action::LEFT);
+            }
+            break;
+        case 119:
+        case 102:  // W/D->flick right.
+            while (IsMovable(*cur_block.get(), cur_block->GetX() + 1,
+                             cur_block->GetY(), slots_)) {
+                cur_block->Move(Action::RIGHT);
+            }
+            break;
+        case 117:  // Back to last block.
+            snapshots_->ResumeFromSnapShot(slots_);
+            break;
         default:
             break;
     }

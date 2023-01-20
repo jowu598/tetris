@@ -16,9 +16,3 @@ void RotateBlock(const BlockPoints& cur_points, BlockPoints* next_points);
 int GetWidth();
 int GetHeight();
 
-#define MARK_SINGLETON(cls)            \
-public:                                \
-    inline static cls* GetInstance() { \
-        static cls s_instance;         \
-        return &s_instance;            \
-    };
